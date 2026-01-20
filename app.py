@@ -18,22 +18,25 @@ db.init_app(app)
 def home():
     return render_template("home.html")
 
-@app.route("/admin_upload", methods=["POST"])
+@app.route("/admin_upload", methods=["GET", "POST"])
 def admin_upload():
-    files = {
-        "class_type": "class_type.xlsx",
-        "teacher_subject": "teacher_subject_mapping.xlsx",
-        "parallel_classes": "parallel_classes.xlsx",
-        "room_mapping": "room_mapping.xlsx",
-        "timetables": "timetables.xlsx",
-        "class_strength": "class_strength.xlsx",
-    }
+    if request.method == "POST":
+        files = {
+            "class_strength": "class_strength.xlsx",
+            "room_mapping": "room_mapping.xlsx",
+            "class_type": "class_type.xlsx",
+            "teacher_subject": "teacher_subject_mapping.xlsx",
+            "parallel_classes": "parallel_classes.xlsx",
+            "timetables": "timetables.xlsx",
+        }
 
-    for key, name in files.items():
-        request.files[key].save(os.path.join(UPLOAD_FOLDER, name))
+        for key, name in files.items():
+            request.files[key].save(os.path.join(UPLOAD_FOLDER, name))
 
-    process_inputs()
-    return "✅ Files uploaded and data loaded"
+        process_inputs()
+        return "✅ Data uploaded and stored successfully"
+
+    return render_template("admin_upload.html")
 
 @app.route("/view/classes")
 def view_classes():
@@ -61,4 +64,4 @@ def view_timetable():
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
