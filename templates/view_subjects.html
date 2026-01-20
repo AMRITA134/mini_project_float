@@ -1,0 +1,7 @@
+<h2>Subjects</h2>
+<table border="1">
+<tr><th>Name</th><th>Lab</th><th>Teacher ID</th></tr>
+{% for s in subjects %}
+<tr><td>{{ s.name }}</td><td>{{ s.is_lab }}</td><td>{{ s.teacher_id }}</td></tr>
+{% endfor %}
+</table>

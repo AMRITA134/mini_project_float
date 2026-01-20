@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Timetable{% endblock %}
+
+{% block content %}
+<h2>Teacher Timetable</h2>
+
+<table>
+    <tr>
+        <th>Day</th>
+        <th>Time Slot</th>
+        <th>Class</th>
+        <th>Subject</th>
+        <th>Room</th>
+        <th>Batch</th>
+    </tr>
+
+    {% for e in entries %}
+    <tr>
+        <td>{{ e.day }}</td>
+        <td>{{ e.slot }}</td>
+        <td>{{ e.class_id }}</td>
+        <td>{{ e.subject_id }}</td>
+        <td>{{ e.room_id }}</td>
+        <td>{{ e.batch }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

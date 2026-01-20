@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Upload</title>
+</head>
+<body>
+
+<h2>Upload Timetable Data</h2>
+
+<form action="/admin_upload" method="POST" enctype="multipart/form-data">
+
+    <label>Class Type</label><br>
+    <input type="file" name="class_type" required><br><br>
+
+    <label>Teacher Subject Mapping</label><br>
+    <input type="file" name="teacher_subject" required><br><br>
+
+    <label>Parallel Classes</label><br>
+    <input type="file" name="parallel_classes" required><br><br>
+
+    <label>Room Mapping</label><br>
+    <input type="file" name="room_mapping" required><br><br>
+
+    <label>Timetables</label><br>
+    <input type="file" name="timetables" required><br><br>
+
+    <label>Class Strength</label><br>
+    <input type="file" name="class_strength" required><br><br>
+
+    <button type="submit">Upload</button>
+
+</form>
+
+</body>
+</html>

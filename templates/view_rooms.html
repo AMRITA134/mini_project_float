@@ -1,0 +1,7 @@
+<h2>Rooms</h2>
+<table border="1">
+<tr><th>Name</th><th>Capacity</th><th>Permanent</th><th>Owner</th></tr>
+{% for r in rooms %}
+<tr><td>{{ r.name }}</td><td>{{ r.capacity }}</td><td>{{ r.is_permanent }}</td><td>{{ r.owner_class_id }}</td></tr>
+{% endfor %}
+</table>

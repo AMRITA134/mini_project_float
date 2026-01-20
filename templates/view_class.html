@@ -1,0 +1,7 @@
+<h2>Classes</h2>
+<table border="1">
+<tr><th>Name</th><th>Strength</th><th>Category</th></tr>
+{% for c in classes %}
+<tr><td>{{ c.name }}</td><td>{{ c.strength }}</td><td>{{ c.class_category }}</td></tr>
+{% endfor %}
+</table>

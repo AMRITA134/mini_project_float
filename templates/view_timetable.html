@@ -1,0 +1,19 @@
+<h2>Timetable (Raw Input)</h2>
+<table border="1">
+<tr>
+<th>Class</th><th>Day</th><th>Slot</th><th>Subject</th>
+<th>Teacher</th><th>Room</th><th>Lab</th><th>Floating</th>
+</tr>
+{% for e in entries %}
+<tr>
+<td>{{ e.class_id }}</td>
+<td>{{ e.day }}</td>
+<td>{{ e.slot }}</td>
+<td>{{ e.subject_id }}</td>
+<td>{{ e.teacher_id }}</td>
+<td>{{ e.room_id }}</td>
+<td>{{ e.is_lab_hour }}</td>
+<td>{{ e.is_floating }}</td>
+</tr>
+{% endfor %}
+</table>
