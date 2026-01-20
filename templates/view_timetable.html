@@ -1,19 +1,58 @@
-<h2>Timetable (Raw Input)</h2>
-<table border="1">
-<tr>
-<th>Class</th><th>Day</th><th>Slot</th><th>Subject</th>
-<th>Teacher</th><th>Room</th><th>Lab</th><th>Floating</th>
-</tr>
-{% for e in entries %}
-<tr>
-<td>{{ e.class_id }}</td>
-<td>{{ e.day }}</td>
-<td>{{ e.slot }}</td>
-<td>{{ e.subject_id }}</td>
-<td>{{ e.teacher_id }}</td>
-<td>{{ e.room_id }}</td>
-<td>{{ e.is_lab_hour }}</td>
-<td>{{ e.is_floating }}</td>
-</tr>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Timetable</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        th, td {
+            border: 1px solid #444;
+            padding: 6px;
+            text-align: center;
+        }
+        th {
+            background-color: #eee;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Timetable</h1>
+
+{% for class_name, captain in grouped_entries.items() %}
+    <h2>Class: {{ class_name }}</h2>
+
+    <table>
+        <tr>
+            <th>Day</th>
+            <th>Time Slot</th>
+            <th>Subject</th>
+            <th>Teacher</th>
+            <th>Room</th>
+            <th>Lab</th>
+            <th>Floating</th>
+            <th>Batch</th>
+        </tr>
+
+        {% for e in captain %}
+        <tr>
+            <td>{{ e.day }}</td>
+            <td>{{ e.slot }}</td>
+            <td>{{ e.subject.name if e.subject else "LAB" }}</td>
+            <td>{{ e.teacher.name if e.teacher else "-" }}</td>
+            <td>{{ e.room.name if e.room else "-" }}</td>
+            <td>{{ "Yes" if e.is_lab_hour else "No" }}</td>
+            <td>{{ "Yes" if e.is_floating else "No" }}</td>
+            <td>{{ e.batch if e.batch else "-" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 {% endfor %}
-</table>
+
+<a href="/">⬅ Back to Home</a>
+
+</body>
+</html>

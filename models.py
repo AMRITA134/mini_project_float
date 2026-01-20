@@ -2,37 +2,102 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+
+# ---------------- CLASS ----------------
 class Class(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True)
-    strength = db.Column(db.Integer)
-    class_category = db.Column(db.String(10))  # permanent / floating
+    __tablename__ = "class"
 
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    strength = db.Column(db.Integer, nullable=False)
+    class_category = db.Column(db.String(20), nullable=False)
+
+    def __repr__(self):
+        return f"<Class {self.name}>"
+
+
+# ---------------- ROOM ----------------
 class Room(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50))
-    capacity = db.Column(db.Integer)
-    is_permanent = db.Column(db.Boolean)
-    owner_class_id = db.Column(db.Integer)
+    __tablename__ = "room"
 
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    capacity = db.Column(db.Integer, nullable=False)
+    is_permanent = db.Column(db.Boolean, default=True)
+
+    owner_class_id = db.Column(
+        db.Integer,
+        db.ForeignKey("class.id"),
+        nullable=True
+    )
+
+    owner_class = db.relationship("Class", backref="rooms")
+
+
+# ---------------- TEACHER ----------------
 class Teacher(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
+    __tablename__ = "teacher"
 
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+
+
+# ---------------- SUBJECT ----------------
 class Subject(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    is_lab = db.Column(db.Boolean)
-    teacher_id = db.Column(db.Integer)
+    __tablename__ = "subject"
 
-class TimetableEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    class_id = db.Column(db.Integer)
-    subject_id = db.Column(db.Integer, nullable=True)
-    teacher_id = db.Column(db.Integer, nullable=True)
-    room_id = db.Column(db.Integer, nullable=True)
-    day = db.Column(db.String(15))
-    slot = db.Column(db.String(20))
-    batch = db.Column(db.String(5), nullable=True)
-    is_lab_hour = db.Column(db.Boolean)
-    is_floating = db.Column(db.Boolean)
+    name = db.Column(db.String(100), nullable=False)
+    is_lab = db.Column(db.Boolean, default=False)
+
+    teacher_id = db.Column(
+        db.Integer,
+        db.ForeignKey("teacher.id"),
+        nullable=True
+    )
+
+    teacher = db.relationship("Teacher", backref="subjects")
+
+
+# ---------------- TIMETABLE ENTRY ----------------
+class TimetableEntry(db.Model):
+    __tablename__ = "timetable_entry"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    class_id = db.Column(
+        db.Integer,
+        db.ForeignKey("class.id"),
+        nullable=False
+    )
+
+    subject_id = db.Column(
+        db.Integer,
+        db.ForeignKey("subject.id"),
+        nullable=True
+    )
+
+    teacher_id = db.Column(
+        db.Integer,
+        db.ForeignKey("teacher.id"),
+        nullable=True
+    )
+
+    room_id = db.Column(
+        db.Integer,
+        db.ForeignKey("room.id"),
+        nullable=True
+    )
+
+    day = db.Column(db.String(20), nullable=False)
+    slot = db.Column(db.String(30), nullable=False)
+
+    batch = db.Column(db.String(10), nullable=True)
+
+    is_lab_hour = db.Column(db.Boolean, default=False)
+    is_floating = db.Column(db.Boolean, default=False)
+
+    class_obj = db.relationship("Class", backref="timetable_entries")
+    subject = db.relationship("Subject")
+    teacher = db.relationship("Teacher")
+    room = db.relationship("Room")

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Timetable</title>
+</head>
+<body>
+
+<h1>Timetable (Normalized View)</h1>
+
+{% for class_name, rows in timetable.items() %}
+<h2>Class: {{ class_name }}</h2>
+
+<table border="1" cellpadding="6">
+    <tr>
+        <th>Day</th>
+        <th>Time Slot</th>
+        <th>Subject</th>
+        <th>Teacher</th>
+        <th>Room</th>
+        <th>Lab</th>
+        <th>Floating</th>
+        <th>Batch</th>
+    </tr>
+
+    {% for r in rows %}
+    <tr>
+        <td>{{ r.Day }}</td>
+        <td>{{ r["Time Slot"] }}</td>
+        <td>{{ r.Subject }}</td>
+        <td>{{ r.Teacher }}</td>
+        <td>{{ r.Room }}</td>
+        <td>{{ r.Lab }}</td>
+        <td>{{ r.Floating }}</td>
+        <td>{{ r.Batch }}</td>
+    </tr>
+    {% endfor %}
+</table>
+<br>
+{% endfor %}
+
+</body>
+</html>

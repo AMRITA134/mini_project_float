@@ -2,15 +2,11 @@ import pandas as pd
 from models import db, Class, Room, Teacher, Subject, TimetableEntry
 
 
-# ---------------- HELPER FUNCTIONS ----------------
+# ---------------- HELPERS ----------------
 
 def normalize(df):
-    """
-    Normalize column names: lowercase, no spaces
-    """
     df.columns = (
-        df.columns
-        .astype(str)
+        df.columns.astype(str)
         .str.strip()
         .str.lower()
         .str.replace(" ", "_")
@@ -19,9 +15,6 @@ def normalize(df):
 
 
 def get_class_column(df):
-    """
-    Safely detect class column
-    """
     if "class" in df.columns:
         return "class"
     if "class_name" in df.columns:
@@ -29,10 +22,10 @@ def get_class_column(df):
     raise ValueError(f"No class column found. Columns: {list(df.columns)}")
 
 
-# ---------------- MAIN PROCESSOR ----------------
+# ---------------- MAIN PROCESS ----------------
 
 def process_inputs():
-    # -------- CLEAR OLD DATA --------
+    # -------- CLEAR DATABASE --------
     TimetableEntry.query.delete()
     Subject.query.delete()
     Teacher.query.delete()
@@ -41,7 +34,7 @@ def process_inputs():
     db.session.commit()
 
     # =====================================================
-    # 1️⃣ CLASS STRENGTH (class, strength, class_category)
+    # 1️⃣ CLASS STRENGTH
     # =====================================================
     class_df = normalize(pd.read_excel("uploads/class_strength.xlsx"))
     class_col = get_class_column(class_df)
@@ -59,14 +52,13 @@ def process_inputs():
         class_map[cls.name] = cls.id
 
     # =====================================================
-    # 2️⃣ ROOM MAPPING (class → permanent room)
+    # 2️⃣ ROOM MAPPING (PERMANENT ROOMS)
     # =====================================================
     room_df = normalize(pd.read_excel("uploads/room_mapping.xlsx"))
     room_class_col = get_class_column(room_df)
 
     for _, r in room_df.iterrows():
         class_name = str(r[room_class_col]).strip()
-
         if class_name not in class_map:
             continue
 
@@ -78,7 +70,7 @@ def process_inputs():
         ))
 
     # =====================================================
-    # 3️⃣ SUBJECT TYPE (lab / theory)
+    # 3️⃣ SUBJECT TYPE (LAB / THEORY)
     # =====================================================
     type_df = normalize(pd.read_excel("uploads/class_type.xlsx"))
     subject_type = {
@@ -87,18 +79,24 @@ def process_inputs():
     }
 
     # =====================================================
-    # 4️⃣ TEACHER – SUBJECT (faculty, subject)
+    # 4️⃣ TEACHERS & SUBJECTS (DEDUPLICATED)
     # =====================================================
     ts_df = normalize(pd.read_excel("uploads/teacher_subject_mapping.xlsx"))
 
-    subject_teacher_map = {}
+    teacher_map = {}   # faculty_name -> Teacher
+    subject_map = {}   # subject_name -> Subject
 
     for _, r in ts_df.iterrows():
-        teacher = Teacher(name=str(r["faculty"]).strip())
-        db.session.add(teacher)
-        db.session.flush()
-
+        faculty = str(r["faculty"]).strip()
         subject_name = str(r["subject"]).strip()
+
+        if faculty in teacher_map:
+            teacher = teacher_map[faculty]
+        else:
+            teacher = Teacher(name=faculty)
+            db.session.add(teacher)
+            db.session.flush()
+            teacher_map[faculty] = teacher
 
         subject = Subject(
             name=subject_name,
@@ -107,8 +105,7 @@ def process_inputs():
         )
         db.session.add(subject)
         db.session.flush()
-
-        subject_teacher_map[subject_name] = subject
+        subject_map[subject_name] = subject
 
     # =====================================================
     # 5️⃣ CLASS TIMETABLES (EACH SHEET = ONE CLASS)
@@ -117,7 +114,6 @@ def process_inputs():
 
     for sheet_name in xls.sheet_names:
         class_name = sheet_name.strip()
-
         if class_name not in class_map:
             continue
 
@@ -127,10 +123,7 @@ def process_inputs():
         df = pd.read_excel(xls, sheet_name=sheet_name)
         df = normalize(df)
 
-        # First column = day
         day_col = df.columns[0]
-
-        # Remaining columns = periods (8.00-8.45 etc.)
         period_cols = df.columns[1:]
 
         for _, row in df.iterrows():
@@ -144,14 +137,12 @@ def process_inputs():
 
                 subject_name = str(subject_name).strip()
 
-                # Skip non-academic slots
+                # Skip non-teaching slots
                 if subject_name.lower() in ["activity hour", "activity"]:
                     continue
 
-                subj_type = subject_type.get(subject_name, "theory")
-
-                # LAB → room becomes free
-                if subj_type == "lab":
+                # ---------------- LAB HOURS ----------------
+                if subject_type.get(subject_name) == "lab":
                     db.session.add(TimetableEntry(
                         class_id=cls_id,
                         day=day,
@@ -160,31 +151,42 @@ def process_inputs():
                         is_lab_hour=True,
                         is_floating=False
                     ))
+                    continue
+
+                # ---------------- THEORY HOURS ----------------
+                # Always ensure subject exists
+                if subject_name in subject_map:
+                    subject = subject_map[subject_name]
                 else:
-                    subject = subject_teacher_map.get(subject_name)
-                    if not subject:
-                        continue
+                    subject = Subject(
+                        name=subject_name,
+                        is_lab=False,
+                        teacher_id=None
+                    )
+                    db.session.add(subject)
+                    db.session.flush()
+                    subject_map[subject_name] = subject
 
-                    room_id = None
-                    if cls.class_category == "permanent":
-                        room = Room.query.filter_by(owner_class_id=cls_id).first()
-                        if room:
-                            room_id = room.id
+                room_id = None
+                if cls.class_category == "permanent":
+                    room = Room.query.filter_by(owner_class_id=cls_id).first()
+                    if room:
+                        room_id = room.id
 
-                    db.session.add(TimetableEntry(
-                        class_id=cls_id,
-                        subject_id=subject.id,
-                        teacher_id=subject.teacher_id,
-                        room_id=room_id,
-                        day=day,
-                        slot=period,
-                        batch=None,
-                        is_lab_hour=False,
-                        is_floating=(cls.class_category == "floating")
-                    ))
+                db.session.add(TimetableEntry(
+                    class_id=cls_id,
+                    subject_id=subject.id,
+                    teacher_id=subject.teacher_id,
+                    room_id=room_id,
+                    day=day,
+                    slot=period,
+                    batch=None,
+                    is_lab_hour=False,
+                    is_floating=(cls.class_category == "floating")
+                ))
 
     # =====================================================
-    # 6️⃣ PARALLEL CLASSES (class, day, period, batch, subject)
+    # 6️⃣ PARALLEL CLASSES
     # =====================================================
     pc_df = normalize(pd.read_excel("uploads/parallel_classes.xlsx"))
     pc_class_col = get_class_column(pc_df)
@@ -196,9 +198,17 @@ def process_inputs():
         if class_name not in class_map:
             continue
 
-        subject = subject_teacher_map.get(subject_name)
-        if not subject:
-            continue
+        if subject_name in subject_map:
+            subject = subject_map[subject_name]
+        else:
+            subject = Subject(
+                name=subject_name,
+                is_lab=False,
+                teacher_id=None
+            )
+            db.session.add(subject)
+            db.session.flush()
+            subject_map[subject_name] = subject
 
         db.session.add(TimetableEntry(
             class_id=class_map[class_name],
