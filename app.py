@@ -4,6 +4,9 @@ from collections import defaultdict
 
 from models import db, Class, Room, Subject, TimetableEntry
 from input_processor import process_inputs
+from allocator import allocate_rooms
+
+# ---------------- APP INIT ----------------
 
 app = Flask(__name__)
 
@@ -17,7 +20,6 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 db.init_app(app)
 
-
 # ---------------- ROUTES ----------------
 
 @app.route("/")
@@ -25,6 +27,7 @@ def home():
     return render_template("home.html")
 
 
+# ---------- ADMIN UPLOAD ----------
 @app.route("/admin_upload", methods=["GET", "POST"])
 def admin_upload():
     if request.method == "POST":
@@ -39,7 +42,7 @@ def admin_upload():
 
         for key, filename in files.items():
             if key not in request.files:
-                return f"Missing file: {key}", 400
+                return f"❌ Missing file: {key}", 400
 
             request.files[key].save(
                 os.path.join(app.config["UPLOAD_FOLDER"], filename)
@@ -51,6 +54,7 @@ def admin_upload():
     return render_template("admin_upload.html")
 
 
+# ---------- VIEW CLASSES ----------
 @app.route("/view/classes")
 def view_classes():
     return render_template(
@@ -59,6 +63,7 @@ def view_classes():
     )
 
 
+# ---------- VIEW ROOMS ----------
 @app.route("/view/rooms")
 def view_rooms():
     return render_template(
@@ -67,6 +72,7 @@ def view_rooms():
     )
 
 
+# ---------- VIEW SUBJECTS ----------
 @app.route("/view/subjects")
 def view_subjects():
     return render_template(
@@ -75,6 +81,7 @@ def view_subjects():
     )
 
 
+# ---------- VIEW TIMETABLE ----------
 @app.route("/view/timetable")
 def view_timetable():
     entries = (
@@ -95,6 +102,13 @@ def view_timetable():
         "view_timetable.html",
         grouped_entries=grouped_entries
     )
+
+
+# ---------- ALLOCATE FLOATING ROOMS ----------
+@app.route("/allocate_floating_rooms")
+def allocate_floating_rooms():
+    allocate_rooms()
+    return "✅ Floating classrooms allocated successfully"
 
 
 # ---------------- MAIN ----------------
