@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Floating Timetable</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin-bottom: 40px;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid #444;
+            padding: 8px;
+            text-align: center;
+            vertical-align: middle;
+            min-width: 120px;
+        }
+
+        th {
+            background: #f0f0f0;
+        }
+
+        .allocated {
+            background-color: #e6ffe6; /* green */
+        }
+
+        .unallocated {
+            background-color: #ffe6e6; /* red */
+        }
+
+        .done-msg {
+            color: green;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Floating Class Timetable</h1>
+
+{% for class_name, class_data in timetable.items() %}
+
+    <h2>Class: {{ class_name }}</h2>
+
+    {# -------- CHECK IF ANY FLOATING ENTRIES EXIST -------- #}
+    {% set has_entries = false %}
+    {% for day, day_data in class_data.items() %}
+        {% for slot, slot_data in day_data.items() %}
+            {% if slot_data|length > 0 %}
+                {% set has_entries = true %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+
+    {% if has_entries %}
+
+    <table>
+        <tr>
+            <th>Day / Time</th>
+            {% for slot in slots %}
+                <th>{{ slot }}</th>
+            {% endfor %}
+        </tr>
+
+        {% for day in days %}
+        <tr>
+            <th>{{ day }}</th>
+
+            {% for slot in slots %}
+                {% if day in class_data and slot in class_data[day] %}
+                    {% set entries = class_data[day][slot] %}
+                    <td class="{{ 'allocated' if entries[0].allocated else 'unallocated' }}">
+                        {% for entry in entries %}
+                            <div>
+                                <strong>{{ entry.subject }}</strong><br>
+                                ({{ entry.room }})
+                            </div>
+                        {% endfor %}
+                    </td>
+                {% else %}
+                    <td>-</td>
+                {% endif %}
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+
+    {% else %}
+        <p class="done-msg">✔ All floating entries allocated for this class</p>
+    {% endif %}
+
+    <hr>
+
+{% endfor %}
+
+</body>
+</html>

@@ -1,58 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Timetable</title>
-    <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 30px;
-        }
-        th, td {
-            border: 1px solid #444;
-            padding: 6px;
-            text-align: center;
-        }
-        th {
-            background-color: #eee;
-        }
-    </style>
+    <title>Floating Class Timetable</title>
 </head>
 <body>
 
-<h1>Timetable</h1>
+{% for class_name, entries in grouped_entries.items() %}
+<h2>Class: {{ class_name }}</h2>
 
-{% for class_name, captain in grouped_entries.items() %}
-    <h2>Class: {{ class_name }}</h2>
+<table border="1">
+<tr>
+    <th>Day</th>
+    <th>Slot</th>
+    <th>Subject(s)</th>
+    <th>Room(s)</th>
+</tr>
 
-    <table>
-        <tr>
-            <th>Day</th>
-            <th>Time Slot</th>
-            <th>Subject</th>
-            <th>Teacher</th>
-            <th>Room</th>
-            <th>Lab</th>
-            <th>Floating</th>
-            <th>Batch</th>
-        </tr>
-
-        {% for e in captain %}
-        <tr>
-            <td>{{ e.day }}</td>
-            <td>{{ e.slot }}</td>
-            <td>{{ e.subject.name if e.subject else "LAB" }}</td>
-            <td>{{ e.teacher.name if e.teacher else "-" }}</td>
-            <td>{{ e.room.name if e.room else "-" }}</td>
-            <td>{{ "Yes" if e.is_lab_hour else "No" }}</td>
-            <td>{{ "Yes" if e.is_floating else "No" }}</td>
-            <td>{{ e.batch if e.batch else "-" }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+{# -------- GROUP BY DAY + SLOT -------- #}
+{% set grouped = {} %}
+{% for e in entries %}
+    {% if e.is_floating %}
+        {% set key = e.day ~ '|' ~ e.slot %}
+        {% if key not in grouped %}
+            {% set _ = grouped.update({key: []}) %}
+        {% endif %}
+        {% set _ = grouped[key].append(e) %}
+    {% endif %}
 {% endfor %}
 
-<a href="/">⬅ Back to Home</a>
+{# -------- DISPLAY GROUPED DATA -------- #}
+{% for key, slot_entries in grouped.items() %}
+<tr>
+    <td>{{ slot_entries[0].day }}</td>
+    <td>{{ slot_entries[0].slot }}</td>
+
+    <td>
+        {{ slot_entries
+            | map(attribute='subject.name')
+            | join(' / ')
+        }}
+    </td>
+
+    <td>
+        (
+        {{ slot_entries
+            | map(attribute='room.name')
+            | map('default', '-')
+            | join(', ')
+        }}
+        )
+    </td>
+</tr>
+{% endfor %}
+
+</table>
+{% endfor %}
 
 </body>
 </html>

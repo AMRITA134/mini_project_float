@@ -7,7 +7,6 @@ from input_processor import process_inputs
 from allocator import allocate_rooms
 
 # ---------------- APP INIT ----------------
-
 app = Flask(__name__)
 
 # ---------------- CONFIG ----------------
@@ -20,14 +19,25 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 db.init_app(app)
 
-# ---------------- ROUTES ----------------
+# ---------------- FIXED SLOT ORDER ----------------
+TIME_SLOTS = [
+    "8.00_-_8.45",
+    "9.10-9.55",
+    "10.00_-_10.45",
+    "10.50-11.35",
+    "11.55_-_12.40",
+    "12.45_-_1.30"
+]
 
+DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"]
+
+# ---------------- HOME ----------------
 @app.route("/")
 def home():
     return render_template("home.html")
 
 
-# ---------- ADMIN UPLOAD ----------
+# ---------------- ADMIN UPLOAD ----------------
 @app.route("/admin_upload", methods=["GET", "POST"])
 def admin_upload():
     if request.method == "POST":
@@ -41,7 +51,7 @@ def admin_upload():
         }
 
         for key, filename in files.items():
-            if key not in request.files:
+            if key not in request.files or request.files[key].filename == "":
                 return f"❌ Missing file: {key}", 400
 
             request.files[key].save(
@@ -54,7 +64,7 @@ def admin_upload():
     return render_template("admin_upload.html")
 
 
-# ---------- VIEW CLASSES ----------
+# ---------------- VIEW CLASSES ----------------
 @app.route("/view/classes")
 def view_classes():
     return render_template(
@@ -63,7 +73,7 @@ def view_classes():
     )
 
 
-# ---------- VIEW ROOMS ----------
+# ---------------- VIEW ROOMS ----------------
 @app.route("/view/rooms")
 def view_rooms():
     return render_template(
@@ -72,7 +82,7 @@ def view_rooms():
     )
 
 
-# ---------- VIEW SUBJECTS ----------
+# ---------------- VIEW SUBJECTS ----------------
 @app.route("/view/subjects")
 def view_subjects():
     return render_template(
@@ -81,7 +91,7 @@ def view_subjects():
     )
 
 
-# ---------- VIEW TIMETABLE ----------
+# ---------------- VIEW RAW TIMETABLE ----------------
 @app.route("/view/timetable")
 def view_timetable():
     entries = (
@@ -94,21 +104,97 @@ def view_timetable():
         .all()
     )
 
-    grouped_entries = defaultdict(list)
+    grouped = defaultdict(list)
     for e in entries:
-        grouped_entries[e.class_obj.name].append(e)
+        grouped[e.class_obj.name].append(e)
 
     return render_template(
         "view_timetable.html",
-        grouped_entries=grouped_entries
+        grouped_entries=grouped
     )
 
 
-# ---------- ALLOCATE FLOATING ROOMS ----------
+# ---------------- ALLOCATE FLOATING ROOMS ----------------
 @app.route("/allocate_floating_rooms")
 def allocate_floating_rooms():
+
+    print("\n========== FLOATING ROOM DEBUG (BEFORE) ==========")
+
+    unresolved = TimetableEntry.query.filter(
+        TimetableEntry.is_floating == True,
+        TimetableEntry.room_id == None
+    ).all()
+
+    print(f"Floating entries WITHOUT rooms (before): {len(unresolved)}")
+
+    for e in unresolved:
+        print(
+            f"ID={e.id} | Class={e.class_obj.name} | "
+            f"{e.day} | Slot={e.slot} | "
+            f"Subject={e.subject.name if e.subject else '-'} | room=None"
+        )
+
+    print("===============================================\n")
+
+    # ---- RUN ALLOCATOR ----
     allocate_rooms()
+
+    # ---- POST-ALLOCATION DEBUG ----
+    post_unresolved = TimetableEntry.query.filter(
+        TimetableEntry.is_floating == True,
+        TimetableEntry.room_id == None
+    ).count()
+
+    post_allocated = TimetableEntry.query.filter(
+        TimetableEntry.is_floating == True,
+        TimetableEntry.room_id != None
+    ).count()
+
+    print("\n========== FLOATING ROOM DEBUG (AFTER) ==========")
+    print(f"Still unresolved: {post_unresolved}")
+    print(f"Allocated but still floating (BUG): {post_allocated}")
+    print("===============================================\n")
+
     return "✅ Floating classrooms allocated successfully"
+
+
+
+# ---------------- VIEW FLOATING TIMETABLE (GRID + PARALLEL MERGE) ----------------
+@app.route("/view/floating_timetable")
+def view_floating_timetable():
+
+    entries = TimetableEntry.query.filter(
+        TimetableEntry.is_floating == True,
+        TimetableEntry.is_lab_hour == False
+    ).order_by(
+        TimetableEntry.class_id,
+        TimetableEntry.day,
+        TimetableEntry.slot
+    ).all()
+
+    timetable = {}
+
+    for e in entries:
+        cls = e.class_obj.name
+        day = e.day
+        slot = e.slot
+
+        timetable.setdefault(cls, {})
+        timetable[cls].setdefault(day, {})
+        timetable[cls][day].setdefault(slot, [])
+
+        timetable[cls][day][slot].append({
+            "subject": e.subject.name if e.subject else "-",
+            "room": e.room.name if e.room else "-",
+            "allocated": bool(e.room_id)
+        })
+
+    return render_template(
+        "floating_timetable_grid.html",
+        timetable=timetable,
+        slots=TIME_SLOTS,
+        days=DAYS
+    )
 
 
 # ---------------- MAIN ----------------
