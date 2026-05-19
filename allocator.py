@@ -61,7 +61,6 @@ def allocate_rooms():
 
         occupied.add((e.day, slot, e.room_id))
 
-
     for entry in floating_entries:
 
         slot = normalize_slot(entry.slot)
@@ -84,9 +83,57 @@ def allocate_rooms():
             print(
                 f"✔ Allocated | {cls.name} | {entry.day} {slot} | {room.name}"
             )
+        
 
             break
 
     db.session.commit()
+    print("\n===== FREE ROOMS =====")
 
+    printed = set()
+
+    day_order = {
+        "MONDAY": 0,
+        "TUESDAY": 1,
+        "WEDNESDAY": 2,
+        "THURSDAY": 3,
+        "FRIDAY": 4,
+        "SATURDAY": 5
+    }
+
+    sorted_entries = sorted(
+        floating_entries,
+        key=lambda e: (
+            day_order.get(e.day, 99),
+            normalize_slot(e.slot)
+        )
+    )
+
+    for entry in sorted_entries:
+
+        slot = normalize_slot(entry.slot)
+
+        slot_key = (entry.day, slot)
+
+        if slot_key in printed:
+            continue
+
+        printed.add(slot_key)
+
+        free_rooms = []
+
+        for room in available_rooms:
+
+            key = (entry.day, slot, room.id)
+
+            if key not in occupied:
+                free_rooms.append(room.name)
+
+        print(f"\n{entry.day} {slot}")
+
+        if free_rooms:
+            for r in free_rooms:
+                print(f"   {r}")
+        else:
+            print("   No free rooms")
     print("\n========== ALLOCATOR END ==========")

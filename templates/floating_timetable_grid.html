@@ -228,12 +228,12 @@
               {% else %}
                 <td class="cell-unallocated">
                   <div class="subject-name">{{ entries | map(attribute='subject') | join(' / ') }}</div>
-                  <div class="room-name">-</div>
+                  <div class="room-name">not allocated</div>
                 </td>
               {% endif %}
 
             {% else %}
-              <td class="cell-empty">—</td>
+              <td class="cell-empty">not allocated</td>
             {% endif %}
 
           {% endfor %}

@@ -43,7 +43,7 @@ TIME_SLOTS = list(map(normalize_slot, [
 ]))
 
 DAYS = [
-    "MONDAY", "TUESDAY", "WEDNESDAY",
+    "MONDAY", "TUESDAY", "WEDNESDAY", 
     "THURSDAY", "FRIDAY", "SATURDAY"
 ]
 
